@@ -1,5 +1,6 @@
 ;;;; slur
-;;;; Utility macros and functions
+
+;;;; v. 0.1.5 / 22 Jun 2017
 
 ;;;; Conventions:
 ;;;; -> functions documented in the form
@@ -14,121 +15,77 @@
 ;;;; sg gp are of the form XX, specific sg 1.0XX
 ;;;; Yeast cell counts assumed to be given as billions of cells
 
+(load (merge-pathnames "grains.lisp" *load-truename*))
+(load (merge-pathnames "unit-conversions.lisp" *load-truename*))
+(load (merge-pathnames "mash.lisp" *load-truename*))
 
+; Malt recipe data
+; Of the form (name | pounds)
 
-;;; Section 1: Basic unit conversions
+(defparameter saison-malt (list
+  (list 'PILSNER 13)
+  (list 'WHEAT   1)
+  (list 'MUNICH  1)))
 
-; Maximum ppg (gp/pound/gallon) of various malted grains
-; Data from Palmer's "How to Brew" 3rd ed., Table 27
-(defparameter *malt-data* (list
-  (list '2-ROW-LAGER    37)
-  (list '6-ROW          35)
-  (list '2-ROW-PALE-ALE 38)
-  (list 'BISCUIT        35)
-  (list 'VICTORY        35)
-  (list 'VIENNA         35)
-  (list 'MUNICH         35)
-  (list 'BROWN          32)
-  (list 'CARAPILS       32)
-  (list 'CRYSTAL-10-15  35)
-  (list 'CRYSTAL-25-40  34)
-  (list 'CRYSTAL-60-75  34)
-  (list 'CRYSTAL-120    33)
-  (list 'SPECIAL-B      31)
-  (list 'CHOCOLATE      28)
-  (list 'ROSTMALZ       32)
-  (list 'ROASTED-BARLEY 25)
-  (list 'BLACK-PATENT   25)
-  (list 'WHEAT          37)
-  (list 'RYE            29)
-  (list 'FLAKED-OATS    32)
-  (list 'FLAKED-CORN    39)
-  (list 'FLAKED-BARLEY  32)
-  (list 'FLAKED-WHEAT   36)
-  (list 'FLAKED-RICE    38)
-  (list 'MALTODEXTRIN   40)
-  (list 'CORN-SUGAR     42)
-  (list 'CANE-SUGAR     46)))
+; Hops recipe data
+; Of the form (ounces | % AA | boil time | [optional] post-boil tag)
+; Non-boil tags include FWH, WHIRLPOOL, DRY-HOP-N (where N = number of days)
+; Dry hop days are counted from N=0, day wort is transferred to ferm vessel
 
-(defparameter *malt-table* (make-hash-table))
+(defparameter saison-hops (list
+  (list 'SAAZ 1.7 4 60)
+  (list 'SAAZ 0.75 4 0)))
 
+; Yeast data from respective lab websites
+; of the form (attenuation % range | [optional] flocculation | [opt] alc. tolerance range | [opt] temp range)
 
-(defmacro gp-to-sg (gp) `(+ 1 (/ ,gp 1000)))
+(defparameter saison-yeast (list 'WLP-028 (list 70 75) 'MEDIUM (list 8 12) (list 65 70)))
 
-(defmacro sg-to-gp (sg) `(* 1000 (- ,sg 1)))
+; Mash schedule recipe data
+; Of the form (step | temperature | time | % of mash)
+;
+; Examples:
+; (SINGLE-INFUSION 152 60 100)
+; (SPARGE          160 0  100) 
+; for a simple single infusion mash for 60 min at 152F
+; 
+; (DOUGH-IN        112 15 100)
+; (ACID-REST       131 15 100)
+; (AMYLASE-REST    149 30 67)
+; (DECOCTION       158 20 33)
+; (DECOCTION-BOIL  212 10 33)
+; (RECOMBINE-DECOC 158 10 100)
+; (MASH-OUT        170 0  100)
+; (SPARGE          160 0  100)
+; For a complex Hefeweizen mash schedule, where the decoction is seperated, rested,
+; and then boiled while the remaining mash is independently heated and rested.
 
-(defmacro oz-to-tbsp (oz) `(* 2 ,oz))
+; Step times that are "as needed" or not applicable (i.e. mash out) should be listed as 0
 
-(defmacro oz-to-cup (oz) `(/ ,oz 8))
+(defparameter saison-mash (list
+  (list 'SINGLE-INFUSION 147 90 100)
+  (list 'MASH-OUT        170 0  100)
+  (list 'SPARGE          170 0  100)))
 
-(defmacro aau (weight AA-percent) `(* ,weight ,AA-percent))
+; Fermentation schedule recipe data
+; Of the form (step | temperature | [optional] days)
+; 
+; Example:
+; ('PRIMARY-FERMENTATION 62)
+; ('DIACETYL-REST        72 2)
+; ('COLD-CRASH           32 14)
 
-(defmacro sg-round (sg) `(/ (round (* ,sg 1000)) 1000.0))
+(defparameter saison-fermentation (list
+  (list 'PRIMARY-FERMENTATION 75 14)
+  (list 'COLD-CONDITION       40 7)))
 
+; Recipe Data
+; Of the form (recipe-volume | grain-bill | hop-schedule | yeast | mash-schedule | fermentation-schedule)
+; Where recipe-volume is the desired final volume of beer in gallons
 
+(defparameter *grain-table* (make-hash-table))
 
-;;; Section 2: Cleaners/Sanitizers
-;;; -> "gal" assumed to be gallons of solution desired
-;;; -> returned units in U.S. fl. oz. unless otherwise specified      
-
-; PBW: Recommended mixture is 1-2 oz/gal, returns midrange (1.5 oz/gal)
-(defmacro pbw (gal) `(* 1.5 ,gal))
-
-; StarSan: Recommendated mixture is 1 oz / 5 gallons
-(defun starsan (gal) `(* 0.2 ,gal))
-
-
-
-;;; Section 3: Mash & Extract
-
-;; Mash
-;; -> water volume in quarts, grist mass in pounds, temperature in degrees F
-
-; setup-malt-table
-; 1. Initializes hash table containing malt data
-; 2. (None)
-(defun setup-malt-table ()
-  (clrhash *malt-table*)
-  (loop for malt in *malt-data* do (setf (gethash (first malt) *malt-table*) (second malt))))
-
-(defmacro malt-yield (malt) `(gethash ,malt *malt-table*))
-
-; max-mash-gp
-; 1. Calculates the therotical maximum sugar extraction from a given grain bill
-; 2. bill   : list of lists of the form ((grain_1 pounds_1)...(grain_n pounds_n))
-;    volume : pre-boil wort volume
-; 3. Returned value of units gallons*points/pound (pt/lbs/gal)
-(defun max-mash-gp (bill volume)
-  (/ (loop for grain in bill sum (* (malt-yield (first grain)) (second grain))) volume))
-
-(defmacro max-mash-sg (bill volume) `(gp-to-sg (max-mash-gp ,bill ,volume)))
-
-; Brewhouse helper macros
-
-(defmacro house-mash-gp (bill boil-vol eff) `(* ,eff (max-mash-gp ,bill ,boil-vol)))
-
-(defmacro house-mash-sg (bill boil-vol eff) `(gp-to-sg (brewhouse-mash-gp ,bill ,boil-vol ,eff)))
-
-(defmacro house-efficiency (bill boil-sg boil-vol) `(/ (sg-to-gp ,boil-sg) (max-mash-gp ,bill ,boil-vol)))
-
-; Strike & sparge helper macros
-
-(defmacro strike-water-vol (grist-mass &optional (ratio 1.5)) `(* ,grist-mass ,ratio))
-
-(defmacro strike-water-temp (ratio ambient-t target-t) `(+ (* (/ 0.2 ,ratio) (- ,target-t ,ambient-t)) ,target-t))
-
-(defmacro infusion-volume (grist-mass current-t target-t infusion-t mash-water-vol) 
-  `(/ (* (- ,target-t ,current-t) (+ (* 0.2 ,grist-mass) ,mash-water-vol)) (- ,infusion-t ,target-t)))
-
-
-;; Extract
-;; -> "gal" assumed to be boil/wort volume in gallons
-;; -> sg (yield) is specific sg of extract in gp/lb/gal
-
-(defmacro extract-get-gp (sg pounds gal) `(/ (* ,sg ,pounds) ,gal))
-
-(defmacro extract-get-pounds (gp sg gal) `(* ,gal (/ ,gp ,sg)))
-
+(defparameter *brewery* nil)
 
 ;;; Section 4: Boil & Hops
 
@@ -195,6 +152,16 @@
 
 ;; Kegging
 
+; (Phead+1.013)*(2.71828182845904^(-10.73797+(2617.25/(Tbeer+273.15))))*10
+(defun carbonation (head-p beer-t)
+  (* 10 (* (+ head-p 1.103) (expt 2.71828182845904 (+ -10.73797 (/ 2617.25 (+ beer-t 273.15)))))))
+  
+
+(defun carb-psi-f (head-p beer-t)
+  (/ (carbonation (/ head-p 14.5038) (/ (- beer-t 32) 1.8)) 1.96))
+
+(defun abv (og fg)
+  (* (* 76.08 (/ (- og fg) (- 1.775 og))) (/ fg 0.794)))
 
 ;; Bottling
 ; priming-sugar-oz
@@ -232,17 +199,46 @@
 ;    boil-vol     : desired volume of boil (i.e. total amount sparged from mash)
 ;    ferm-vol     : desired post-volume volume (i.e. volume of wort going into fermenter)
 ;    efficiency   : brewhouse efficiency, defaulted to typical 75%, expressed as float
-(defun make-recipe (bill hop-schedule boil-vol ferm-vol &optional (efficiency 0.75))
-  (setup-malt-table)
-  (let ((bg (brewhouse-mash-sg bill boil-vol efficiency)))
+(defun make-recipe1 (bill hop-schedule boil-vol ferm-vol &optional (efficiency 0.75))
+  (setup-grain-table)
+  (let ((bg (house-mash-sg bill boil-vol efficiency)))
     (let ((og (bg-to-og bg boil-vol ferm-vol)))
       (loop for grain in bill do (format t "~a lbs. ~a~%" (second grain) (first grain)))
       (format t "~%")
       (loop for hop in hop-schedule do (format t "~a oz of ~a% hops for ~a min.~%" (first hop) (second hop) (third hop)))
       (format t "~%")
-      (format t "BG:    ~a~%" (sg-round bg))
-      (format t "OG:    ~a~%" (sg-round og))
+      (format t "BG:    ~a~%" (float-round bg 2))
+      (format t "OG:    ~a~%" (float-round og 2))
+      (format t "FG:    ~a~%" (float-round (gp-to-sg (* .25 (sg-to-gp og))) 2))
+      (format t "ABV:   ~a%~%"  (abv og (gp-to-sg (* .25 (sg-to-gp og)))))
       (format t "IBU:   ~a~%" (round (recipe-IBU hop-schedule bg ferm-vol)))
       (format t "Pitch: ~a~%" (round (ale-pitch-rate og ferm-vol))))))
 
+
+; build-brewery
+; 1. Sets up slur environment
+; 2. mash-efficiency : Calculated/observed mash efficiency
+;    boil-loss       : wort volume loss during boil (gal/hr)
+; 3. Required prior to use of recipe functions
+(defun build-brewery (mash-efficiency boil-loss)
+  (setf *brewery* (list mash-efficiency boil-loss))
+  (setup-grain-table))
+
+(defmacro build-recipe (recipe-name recipe-volume grain-bill hop-schedule yeast mash-schedule fermentation-schedule)
+  `(list ,recipe-name ,recipe-volume ,grain-bill ,hop-schedule ,yeast ,mash-schedule ,fermentation-schedule))
+
+(defun spit-recipe (recipe)
+  (format t "~a (~a gallons)~%~%" (first recipe) (second recipe))
+  (format t "Grain bill:~%")
+  (loop for grain in (third recipe) do (format t "~albs ~a~%" (second grain) (first grain)))
+  (format t "~%~%Mash schedule:~%")
+  (loop for mash-step in (sixth recipe) do 
+    (format t "~a ~a% of mash for ~a minutes at ~aF~%" 
+      (first mash-step) (fourth mash-step) (third mash-step) (second mash-step)))
+  (format t "~%Hop schedule:~%")
+  (loop for hop in (fourth recipe) do 
+    (format t "~aoz of ~a AAU ~a hops at ~a minutes~%" (second hop) (third hop) (first hop) (fourth hop)))
+  (format t "~%Ferment with ~a yeast as follows:~%" (first (fifth recipe)))
+  (loop for ferm-step in (seventh recipe) do
+    (format t "~a at ~aF for ~a days~%" (first ferm-step) (second ferm-step) (third ferm-step))))
 
