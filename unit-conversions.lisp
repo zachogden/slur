@@ -17,6 +17,12 @@
 
 ;; Section 1: Gravity measurements
 
+; plato-to-sg
+(defun plato-to-sg (plato) (+ 1 (/ plato (- 258.6 (* 227.1 (/ plato 258.2))))))
+
+; sg-to-plato
+(defun sg-to-plato (sg) (+ (* -1 616.868) (* 1111.14 sg) (* -630.272 (expt sg 2)) (* 135.997 (expt sg 3))))
+
 ; gp-to-sg
 ; 1. Converts gp to sg
 ; 2. gp : gravity points to be converted
@@ -28,6 +34,14 @@
 ; 2. sg : specific gravity to be converted
 ; 3. 1.XXX --> XX.XX
 (defmacro sg-to-gp (sg) `(* 1000 (- ,sg 1)))
+
+; bg-to-og
+; 1. Converts boil gravity (bg) to original gravity (og)
+; 2. bg       : boil gravity
+;    boil-vol : boil volume (gal)
+;    ferm-vol : fermentor (post-boil) volume
+; 3. Does not consider trub/deadspace loss
+(defmacro bg-to-og (bg boil-vol ferm-vol) `(gp-to-sg (/ (* (sg-to-gp ,bg) ,boil-vol) ,ferm-vol)))
 
 ;; Mass/volume conversions
 
@@ -84,4 +98,7 @@
 ; 2. gal : volume of sanitizing solution
 ; 3. Recommendated mixture is 1 oz / 5 gallons
 (defun starsan (gal) `(* 0.2 ,gal))
+
+
+
 

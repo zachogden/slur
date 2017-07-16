@@ -18,31 +18,6 @@
 
 ;;; Section 1: Grain and bill utility functions
 
-; grain-bill-percentage
-; 1. Returns grain bill of the form (GRAIN-NAME PERCENTAGE-OF-BILL)
-; 2. grain-bill : grain bill to be considered
-; 3. (None)
-(defun grain-bill-percentage (grain-bill)
-  (let ((grains (loop for grain in grain-bill collect (second grain))))
-    (loop for grain in grains collect (* 0.01 (round (/ grain (apply '+ grains)) 0.01)))))
-
-; scale-grain-bill
-; 1. Scales grain bill by scale-factor
-; 2. grain-bill   : see (1)
-;    scale-factor : see (1)
-; 3. (None)
-(defun scale-grain-bill (grain-bill scale-factor)
-  (loop for grain in grain-bill collect (list (first grain) (* scale-factor (second grain)))))
-
-; scale-grain-bill-to-efficiency
-; 1. Scales grain bill according to (assumed) recipe and house efficiencies
-; 2. grain-bill        : see (1)
-;    recipe-efficiency : brewhouse efficiency assumed by recipe (typically 75%)
-;    house-efficiency  : actual brewhouse efficiency
-(defun scale-grain-bill-to-efficiency (grain-bill recipe-efficiency house-efficiency)
-  (scale-grain-bill grain-bill (/ recipe-efficiency house-efficiency)))
-
-
 ;;; Maximum ppg (gp/pound/gallon) of various malted grains
 ;;; Data from Palmer's "How to Brew" 3rd ed., Table 27
 
@@ -90,7 +65,7 @@
   (list 'ROASTED-BARLEY  25 300)
   (list 'CHOCOLATE       28 350)
   (list 'CARAFA-II       36 412)
-  (list 'BLACK-PATEN     25 500)
+  (list 'BLACK-PATENT    25 500)
 
   ; Grain adjuncts
   (list 'CARAFOAM        0  1)
@@ -103,4 +78,52 @@
   ; Simple sugar adjuncts
   (list 'MALTODEXTRIN    40 0)
   (list 'CORN-SUGAR      42 0)
-  (list 'CANE-SUGAR      46 0)))
+  (list 'CANE-SUGAR      46 0)
+
+  ; DME
+  (list 'DME-CBW-PILSEN-LIGHT 31.8 0))) ; Briess brand 2L 8P
+
+; setup-grain-table
+; 1. Initializes hash table containing malt data
+; 2. (None)
+; 3. (None)
+(defun setup-grain-table ()
+  (clrhash *grain-table*)
+  (loop for grain in *grain-data* do (setf (gethash (first grain) *grain-table*) (rest grain))))
+
+; max-grain-points
+; 1. Returns theoretical maximum gravity point contribution for a given malt
+; 2. grain : selected grain
+; 3. (None)
+(defmacro max-grain-points (grain) `(first (gethash ,grain *grain-table*)))
+
+; grain-SRM
+; 1. Returns SRM for given grain
+; 2. grain : selected grain
+; 3. (None)
+(defmacro grain-SRM (grain) `(second (gethash ,grain *grain-table*)))
+
+; grain-bill-percentage
+; 1. Returns grain bill of the form (GRAIN-NAME PERCENTAGE-OF-BILL)
+; 2. grain-bill : grain bill to be considered
+; 3. (None)
+(defun grain-bill-percentage (grain-bill)
+  (let ((grains (loop for grain in grain-bill collect (second grain))))
+    (loop for grain in grains collect (* 0.01 (round (/ grain (apply '+ grains)) 0.01)))))
+
+; scale-grain-bill
+; 1. Scales grain bill by scale-factor
+; 2. grain-bill   : see (1)
+;    scale-factor : see (1)
+; 3. (None)
+(defun scale-grain-bill (grain-bill scale-factor)
+  (loop for grain in grain-bill collect (list (first grain) (* scale-factor (second grain)))))
+
+; scale-grain-bill-to-efficiency
+; 1. Scales grain bill according to (assumed) recipe and house efficiencies
+; 2. grain-bill        : see (1)
+;    recipe-efficiency : brewhouse efficiency assumed by recipe (typically 75%)
+;    house-efficiency  : actual brewhouse efficiency
+(defun scale-grain-bill-to-efficiency (grain-bill recipe-efficiency house-efficiency)
+  (scale-grain-bill grain-bill (/ recipe-efficiency house-efficiency)))
+

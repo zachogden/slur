@@ -15,29 +15,9 @@
 ;;;; Yeast cell counts assumed to be given as billions of cells
 
 ;;; Section 1: Utility functions
-;; -> water volume in quarts
-;; -> grist mass in pounds
-;; -> temperature in degrees F
-
-; setup-grain-table
-; 1. Initializes hash table containing malt data
-; 2. (None)
-; 3. (None)
-(defun setup-grain-table ()
-  (clrhash *grain-table*)
-  (loop for grain in *grain-data* do (setf (gethash (first grain) *grain-table*) (rest grain))))
-
-; max-grain-points
-; 1. Returns theoretical maximum gravity point contribution for a given malt
-; 2. grain : selected grain
-; 3. (None)
-(defmacro max-grain-points (grain) `(first (gethash ,grain *grain-table*)))
-
-; grain-SRM
-; 1. Returns SRM for given grain
-; 2. grain : selected grain
-; 3. (None)
-(defmacro grain-SRM (grain) `(second (gethash ,grain *grain-table*)))
+;;; -> water volume in quarts
+;;; -> grist mass in pounds
+;;; -> temperature in degrees F
 
 ; grist-mass
 ; 1. Calculates total mass of given grain bill
@@ -81,11 +61,11 @@
 ;; Strike & sparge helper macros
 
 ; strike-water-vol
-; 1. Calculates volume of strike water (quarts) required for mash
+; 1. Calculates volume of strike water (gallons) required for mash
 ; 2. grist-mass  : mass of grain bill
 ;    ratio (opt) : water/grist ratio
 ; 3. (None)
-(defmacro strike-water-vol (grist-mass &optional (ratio 1.5)) `(* ,grist-mass ,ratio))
+(defmacro strike-water-vol (grist-mass &optional (ratio 1.5)) `(/ (* ,grist-mass ,ratio) 4))
 
 ; strike-water-temp
 ; 1. Calculates required temperature of strike water
@@ -94,6 +74,10 @@
 ;    target-t  : target mash temp
 ; 3. Assumes prewarmed mashtun, grain at ambient temp
 (defmacro strike-water-temp (ratio ambient-t target-t) `(+ (* (/ 0.2 ,ratio) (- ,target-t ,ambient-t)) ,target-t))
+
+; returns in gallons
+; assumes absorption 0.5 qt/lbs
+(defun grain-water-absorbed (grist-mass) (/ (* 0.5 grist-mass) 4))
 
 ; infusion-volume
 ; 1. Calculates volume of mash infusion (i.e. raising mash temp via infusion)
