@@ -19,11 +19,14 @@
 ;;; Section 1: Grain and bill utility functions
 
 ;;; Maximum ppg (gp/pound/gallon) of various malted grains
-;;; Data from Palmer's "How to Brew" 3rd ed., Table 27
+;;; Data from Palmer's "How to Brew" 3rd ed., Table 27 and manufacturer sources
 
 ;;; All other data found on manufacturer and distributor websites.
 ;;; Malt data given in the form (MALT-NAME MAX-PPG SRM)
-(defparameter *grain-data* (list
+
+(defparameter *fermentables* (make-hash-table))
+
+(defparameter *fermentables-data* (list
   ; Base malts
   (list 'UK-PILSNER      36 1)
   (list 'MALTED-OATS     37 1)
@@ -87,21 +90,9 @@
 ; 1. Initializes hash table containing malt data
 ; 2. (None)
 ; 3. (None)
-(defun setup-grain-table ()
-  (clrhash *grain-table*)
-  (loop for grain in *grain-data* do (setf (gethash (first grain) *grain-table*) (rest grain))))
-
-; max-grain-points
-; 1. Returns theoretical maximum gravity point contribution for a given malt
-; 2. grain : selected grain
-; 3. (None)
-(defmacro max-grain-points (grain) `(first (gethash ,grain *grain-table*)))
-
-; grain-SRM
-; 1. Returns SRM for given grain
-; 2. grain : selected grain
-; 3. (None)
-(defmacro grain-SRM (grain) `(second (gethash ,grain *grain-table*)))
+(defun setup-fermentables-table ()
+  (clrhash *fermentables*)
+  (loop for grain in *fermentables-data* do (setf (gethash (first grain) *fermentables*) (rest grain))))
 
 ; grain-bill-percentage
 ; 1. Returns grain bill of the form (GRAIN-NAME PERCENTAGE-OF-BILL)
@@ -119,11 +110,31 @@
 (defun scale-grain-bill (grain-bill scale-factor)
   (loop for grain in grain-bill collect (list (first grain) (* scale-factor (second grain)))))
 
-; scale-grain-bill-to-efficiency
-; 1. Scales grain bill according to (assumed) recipe and house efficiencies
-; 2. grain-bill        : see (1)
-;    recipe-efficiency : brewhouse efficiency assumed by recipe (typically 75%)
-;    house-efficiency  : actual brewhouse efficiency
-(defun scale-grain-bill-to-efficiency (grain-bill recipe-efficiency house-efficiency)
-  (scale-grain-bill grain-bill (/ recipe-efficiency house-efficiency)))
 
+;;; Section 2: fermentable class
+
+(defclass fermentable (ingredient)
+	((max-yield
+		:initform 0
+		:accessor max-yield
+		:documentation "maximum yield of fermentable (ppg)")
+	(srm
+		:initform 0
+		:accessor srm
+		:documentation "SRM of fermentable")
+	(weight
+		:initarg :weight
+		:accessor weight
+		:documentation "Weight of fermentable")))
+
+(defmethod initialize-instance :after ((f fermentable) &key)
+	(setf (max-yield f) (first  (gethash (name f) *fermentables*)))
+	(setf (srm       f) (second (gethash (name f) *fermentables*))))
+
+(defmethod add-ingredient (recipe (f fermentable) &rest r)
+	(if (not (gethash (form f) recipe)) 
+		(setf (gethash (form f) recipe) (list (list (name f) (weight f) (first r))))
+		(setf (gethash (form f) recipe) (append (gethash (form f) recipe) (list (list (name f) (weight f) (first r)))))))
+
+(defun make-grain (name weight)
+	(make-instance 'fermentable :name name :form 'GRAIN :weight weight))

@@ -1,5 +1,43 @@
 ;;; Section 4: Hops
 
+; Class definition
+(defclass hop (ingredient)
+	 ((alpha-acid
+	    :initarg :alpha-acid
+	    :initform 0
+	    :reader alpha-acid
+	    :documentation "Alpha acid percentage")))
+
+; Initialization error checking
+; Confirms initialization variables are of correct type.
+(defmethod initialize-instance :after ((h hop) &key)
+	(if (not (numberp (slot-value h 'alpha-acid))) (setf (slot-value h 'alpha-acid) 0)))
+
+(defclass hop-addition ()
+	((hop-type
+		:initarg :hop-type
+		:initform nil
+		:reader hop-type
+		:documentation "Hop type of addition (from hop shop)")
+	(weight
+		:initarg :weight
+		:initform 0
+		:accessor weight
+		:documentation "Weight (oz)")
+	(at-time
+		:initarg :at-time
+		:initform 0
+		:accessor at-time
+		:documentation "Addition time (min)")
+	(step-tag
+		:initarg :step-tag
+		:initform 'BOIL
+		:accessor step-tag
+		:documentation "Addition step tag (i.e. 'BOIL, 'WHIRLPOOL)")))
+
+(defun make-hop-addition (type weight at-time &optional step-tag) 
+	(make-instance 'hop-addition :hop-type type :weight weight :at-time at-time :step-tag step-tag))
+
 ; hop-utilization
 ; 1. Calculate hop utilization
 ; 2. boil-sg : sg of wort measured pre-boil
@@ -23,7 +61,7 @@
 ; 2. hop-schedule  : list of hop additions of the form (weight | AA % | time), where time is boil length
 ;    boil-sg  : sg of wort measured pre-boil
 ;    recipe-volume : desired final volume of fermented beer
-(defun recipe-IBU (hop-schedule boil-sg recipe-volume)
-  (loop for hop-addition in hop-schedule sum 
-    (IBU (aau (second hop-addition) (third hop-addition)) boil-sg (fifth hop-addition) recipe-volume)))
+(defun recipe-IBU (kettle boil-sg recipe-volume)
+  (loop for k in kettle if (typep (first k) 'hop) sum
+    (IBU (aau (second k) (alpha-acid (first k))) boil-sg (abs (third k)) recipe-volume)))
 

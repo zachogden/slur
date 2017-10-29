@@ -36,7 +36,7 @@
 ;    volume : pre-boil wort volume
 ; 3. Returned value of units gallons*points/pound (pt/lbs/gal)
 (defun max-mash-gp (bill volume)
-  (/ (loop for grain in bill sum (* (max-grain-points (first grain)) (second grain))) volume))
+  (/ (loop for grain in bill sum (* (first (gethash (first grain) *fermentables*)) (second grain))) volume))
 
 
 ;; Brewhouse utility functions
@@ -88,6 +88,53 @@
 ; 3. (None)
 (defmacro infusion-volume (grist-mass current-t target-t infusion-t mash-water-vol) 
   `(/ (* (- ,target-t ,current-t) (+ (* 0.2 ,grist-mass) ,mash-water-vol)) (- ,infusion-t ,target-t)))
+
+(defun get-mash-temp (r)
+  (loop for mash-step in (mash r) if (and (typep mash-step 'list) (eql (first mash-step) 'MASH))
+    return (second mash-step)))
+
+(defun sort-mash-grains (r)
+  (sort (get-mash-grains r) #'> :key #'second))
+
+; recipe-eff-adjust
+; 1. Scales grain bill to target OG based on given mash efficiency
+; 2. bill : mash grain bill
+;    vol  : recipe volume
+;    OG   : target OG
+;    eff  : mash efficiency
+(defun scale-to-OG (bill vol OG eff)
+  (let ((scale-factor (/ (sg-to-gp OG) (* (max-mash-gp bill vol) eff))))
+    (loop for grain in bill collect (list (first grain) (* scale-factor (second grain))))))
+
+; scale-grain-bill-to-efficiency
+; 1. Scales grain bill according to (assumed) recipe and house efficiencies
+; 2. grain-bill        : see (1)
+;    recipe-efficiency : brewhouse efficiency assumed by recipe (typically 75%)
+;    house-efficiency  : actual brewhouse efficiency
+(defun scale-to-efficiency (grain-bill recipe-efficiency house-efficiency)
+  (scale-grain-bill grain-bill (/ recipe-efficiency house-efficiency)))
+
+(defun add-mash-step (r mash-step)
+  (if (not (mash r)) (setf (mash r) (list mash-step))
+    (setf (mash r) (cons mash-step (mash r)))))
+
+(defun get-mash-grains (r) 
+  (loop for g in (mash r) if (typep g 'fermentable) collect (list (name g) (weight g))))
+
+(defun spit-mash (r b &aux (mash-grains (get-mash-grains r)))
+  (let* (
+    (mash-loss   (grain-water-absorbed (grist-mass mash-grains)))
+    (strike-vol  (float-round (strike-water-vol (grist-mass mash-grains) (wgr b)) 2))
+    (strike-temp (strike-water-temp (wgr b) (ambient-temp b) (get-mash-temp r)))
+    (sparge-vol  (float-round (+ mash-loss (- (boil-vol r b) strike-vol)) 2)))
+  
+      (format t "Strike ~a gallons of water to ~aF~%~%" strike-vol strike-temp)
+
+      (format t "Dough in the following:~%")
+  
+      (loop for grain in (sort-mash-grains r) do (format t "~a lbs ~a~%" (second grain) (first grain)))
+
+      (format t "Sparge ~a gal~%" sparge-vol)))
 
 
 
