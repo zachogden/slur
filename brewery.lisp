@@ -9,6 +9,11 @@
     :initform 1.5
     :accessor wgr
     :documentation "water:grist ratio")
+  (mashtun-vol
+    :initarg :mashtun-vol
+    :initform 10
+    :accessor mashtun-vol
+    :documentation "Usable mashtun volume (gal)")
   (mash-eff
     :initarg :mash-eff
     :initform 0.75

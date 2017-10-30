@@ -8,6 +8,12 @@
 	    :reader alpha-acid
 	    :documentation "Alpha acid percentage")))
 
+(defmethod print-object ((o hop) stream)
+  (format stream "(~s ~s ~s)" 
+  	(name o) 
+  	(form o) 
+  	(alpha-acid o)))
+
 ; Initialization error checking
 ; Confirms initialization variables are of correct type.
 (defmethod initialize-instance :after ((h hop) &key)
@@ -18,7 +24,7 @@
 		:initarg :hop-type
 		:initform nil
 		:reader hop-type
-		:documentation "Hop type of addition (from hop shop)")
+		:documentation "Hop type of class hop")
 	(weight
 		:initarg :weight
 		:initform 0
@@ -31,9 +37,21 @@
 		:documentation "Addition time (min)")
 	(step-tag
 		:initarg :step-tag
-		:initform 'BOIL
+		:initform nil
 		:accessor step-tag
 		:documentation "Addition step tag (i.e. 'BOIL, 'WHIRLPOOL)")))
+
+;(defmethod initialize-instance :after ((h hop-addition) &key)
+	;(format t "Hop addition: ~a ~a ~a ~a~%" (name (hop-type h)) (weight h) (at-time h) (step-tag h)))
+
+(defmethod print-object ((o hop-addition) stream)
+  (format stream "(~s ~s ~s ~s ~s ~s)" 
+  	(name (hop-type o)) 
+  	(form (hop-type o)) 
+  	(alpha-acid (hop-type o)) 
+  	(weight o) 
+  	(at-time o) 
+  	(step-tag o)))
 
 (defun make-hop-addition (type weight at-time &optional step-tag) 
 	(make-instance 'hop-addition :hop-type type :weight weight :at-time at-time :step-tag step-tag))

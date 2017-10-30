@@ -12,7 +12,7 @@
   		(progn 
   			(if (eql 'WHIRLPOOL (step-tag kettle-step))
   				(setf (at-time kettle-step) (* -1 (at-time kettle-step))) t) 
-    		(list (hop-type kettle-step) (weight kettle-step) (at-time kettle-step)))
+    		(list (hop-type kettle-step) (weight kettle-step) (at-time kettle-step) (step-tag kettle-step)))
         kettle-step))
 
   (if (not (kettle r)) (setf (kettle r) (list s))
@@ -20,9 +20,17 @@
 
   (sort (kettle r) #'> :key #'third))
 
-(defun target-bg (r b) (gp-to-sg (house-mash-gp (get-mash-grains r) (boil-vol r b) (mash-eff b))))
-
 (defun target-og (r b) (bg-to-og (target-bg r b) (boil-vol r b) (volume r)))
+
+; recipe-eff-adjust
+; 1. Scales grain bill to target OG based on given mash efficiency
+; 2. bill : mash grain bill
+;    vol  : recipe volume
+;    OG   : target OG
+;    eff  : mash efficiency
+(defun scale-to-OG (bill vol OG eff)
+  (let ((scale-factor (/ (sg-to-gp OG) (* (max-mash-gp bill vol) eff))))
+    (loop for grain in bill collect (list (first grain) (* scale-factor (second grain))))))
 
 (defun spit-kettle (r)
   (loop for k in (kettle r)

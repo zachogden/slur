@@ -115,21 +115,27 @@
 
 (defclass fermentable (ingredient)
 	((max-yield
+    :initarg :max-yield
 		:initform 0
 		:accessor max-yield
 		:documentation "maximum yield of fermentable (ppg)")
 	(srm
+    :initarg :srm
 		:initform 0
 		:accessor srm
 		:documentation "SRM of fermentable")
 	(weight
 		:initarg :weight
+    :initform 0
 		:accessor weight
 		:documentation "Weight of fermentable")))
 
 (defmethod initialize-instance :after ((f fermentable) &key)
 	(setf (max-yield f) (first  (gethash (name f) *fermentables*)))
 	(setf (srm       f) (second (gethash (name f) *fermentables*))))
+
+(defmethod print-object ((o fermentable) stream)
+  (format stream "(~a ~a ~a ~a ~a)" (name o) (form o) (max-yield o) (srm o) (weight o)))
 
 (defmethod add-ingredient (recipe (f fermentable) &rest r)
 	(if (not (gethash (form f) recipe)) 

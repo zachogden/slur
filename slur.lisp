@@ -2,6 +2,24 @@
 
 ;;;; v. 0.1.7 / 28 Oct 2017
 
+;;;; To-do
+;;;; 1) water chemistry [vvh]
+;;;; --> [ion] given common salt additions
+;;;; --> i/o water profiles
+;;;; --> bounds checking for pH/alk (?)
+;;;; 2) pantry/inventory [vh]
+;;;; --> hops
+;;;; --> fermentables
+;;;; 3) post-brew [vh]
+;;;; --> tie-in w/ (3)
+;;;; --> tie-in w/ (1)
+;;;; 4) mash types [h]
+;;;; --> no sparge (confirm w/ size of mash tun)
+;;;; --> batch sparge
+;;;; --> fly sparge
+
+;;;; 5, 2 (barebones/sandbox), 3 (initial functions)
+
 ;;;; Conventions:
 ;;;; -> functions documented in the form
 ;;;; -> function-name
@@ -20,13 +38,14 @@
 (load (merge-pathnames "mash.lisp" *load-truename*))
 (load (merge-pathnames "kettle.lisp" *load-truename*))
 
-(load (merge-pathnames "yeast.lisp" *load-truename*))
+(load (merge-pathnames "fermentation.lisp" *load-truename*))
 (load (merge-pathnames "packaging.lisp" *load-truename*))
 (load (merge-pathnames "recipe.lisp" *load-truename*))
 
 (setup-fermentables-table)
 
-(defparameter my-brewery (make-instance 'brewery :name "Maize & Brew" :mash-eff 0.75 :ambient-temp 68 :wgr 1.5))
+(defvar my-brewery 
+  (make-instance 'brewery :name "Maize & Brew" :mashtun-vol 10.0 :mash-eff 0.75 :ambient-temp 68 :wgr 1.5))
 
 (defvar NEIPA nil)
 (defvar blonde nil)
@@ -49,30 +68,20 @@
   (add-kettle-step blonde (list 'BOIL      212 60))
   (add-kettle-step blonde (list 'WHIRLFLOC 212 15))
 
-  (add-kettle-step blonde (make-hop-addition willamette 1.0 60)))
+  (add-kettle-step blonde (make-hop-addition willamette 1.0 60 'BOIL))
 
-(defun make-NEIPA ()
-  (setf NEIPA (make-instance 'recipe :name "New England IPA" :volume 5.5))
-
-  (add-mash-step NEIPA (make-grain '2-ROW       11.5))
-  (add-mash-step NEIPA (make-grain 'FLAKED-OATS 2.5))
-
-  (add-mash-step NEIPA (list 'MASH   150 60 100))
-  (add-mash-step NEIPA (list 'SPARGE 170 60 100))
-
-  (add-kettle-step NEIPA (list 'BOIL 212 60))
-  (add-kettle-step NEIPA (list 'WHIRLFLOC 212 15))
-
-  (add-kettle-step NEIPA (make-hop-addition centennial 0.25 60))
-  (add-kettle-step NEIPA (make-hop-addition centennial 0.50 5))
-  (add-kettle-step NEIPA (make-hop-addition amarillo   0.50 5))
-  (add-kettle-step NEIPA (make-hop-addition simcoe     0.50 5))
-
-  (add-kettle-step NEIPA (make-hop-addition centennial 0.75 20 'WHIRLPOOL))
-  (add-kettle-step NEIPA (make-hop-addition amarillo   0.75 20 'WHIRLPOOL))
-  (add-kettle-step NEIPA (make-hop-addition simcoe     0.75 20 'WHIRLPOOL)))
+  (add-ferm-step blonde (list 'PRIMARY 'WLP-001 10 70)))
 
 (defun asd ()
   (make-blonde)
   (spit-recipe blonde my-brewery))
 
+(defvar b1 nil)
+
+(defun aaa ()
+  (make-blonde)
+  (spit-recipe blonde my-brewery)
+  (write-recipe blonde "/lisp/slur/blonde.slur")
+  (format t "~%**********~%")
+  (setf b1 (read-recipe "/lisp/slur/blonde.slur"))
+  (spit-recipe b1 my-brewery))

@@ -93,18 +93,12 @@
   (loop for mash-step in (mash r) if (and (typep mash-step 'list) (eql (first mash-step) 'MASH))
     return (second mash-step)))
 
+(defun get-mash-grains (r) 
+  (loop for g in (mash r) if (typep g 'fermentable) collect (list (name g) (weight g) (srm g))))
+
 (defun sort-mash-grains (r)
   (sort (get-mash-grains r) #'> :key #'second))
 
-; recipe-eff-adjust
-; 1. Scales grain bill to target OG based on given mash efficiency
-; 2. bill : mash grain bill
-;    vol  : recipe volume
-;    OG   : target OG
-;    eff  : mash efficiency
-(defun scale-to-OG (bill vol OG eff)
-  (let ((scale-factor (/ (sg-to-gp OG) (* (max-mash-gp bill vol) eff))))
-    (loop for grain in bill collect (list (first grain) (* scale-factor (second grain))))))
 
 ; scale-grain-bill-to-efficiency
 ; 1. Scales grain bill according to (assumed) recipe and house efficiencies
@@ -114,12 +108,17 @@
 (defun scale-to-efficiency (grain-bill recipe-efficiency house-efficiency)
   (scale-grain-bill grain-bill (/ recipe-efficiency house-efficiency)))
 
+(defun target-bg (r b) (gp-to-sg (house-mash-gp (get-mash-grains r) (boil-vol r b) (mash-eff b))))
+
+; add-mash-step
+; 1. Adds mash step to recipe
+; 2. r         : recipe (of same class)
+;    b         : brewery (of same class)
+;    mash-step : mash step to be added
+; 3. Recalculates BG after addition
 (defun add-mash-step (r mash-step)
   (if (not (mash r)) (setf (mash r) (list mash-step))
     (setf (mash r) (cons mash-step (mash r)))))
-
-(defun get-mash-grains (r) 
-  (loop for g in (mash r) if (typep g 'fermentable) collect (list (name g) (weight g))))
 
 (defun spit-mash (r b &aux (mash-grains (get-mash-grains r)))
   (let* (
@@ -137,5 +136,3 @@
       (format t "Sparge ~a gal~%" sparge-vol)))
 
 
-
-  

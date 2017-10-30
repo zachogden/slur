@@ -66,6 +66,12 @@
 (defmacro oz-to-cups (oz)   `(/ ,oz   8))
 (defmacro cups-to-oz (cups) `(* ,cups 8))
 
+; grist-volume
+; 1. Estimates volume of (dry) grist in gallons
+; 2. lbs : grist mass in pounds
+; 3. Assumes "rule-of-thumb" of 0.36 qts/lb
+(defmacro grist-volume (lbs) `(* ,lbs 0.09))
+
 
 ;; Section 2: Numeric utility functions
 
