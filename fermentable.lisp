@@ -68,6 +68,7 @@
   (list 'ROASTED-BARLEY  25 300)
   (list 'CHOCOLATE       28 350)
   (list 'CARAFA-II       36 412)
+  (list 'CARAFA-III      32 525)
   (list 'BLACK-PATENT    25 500)
 
   ; Grain adjuncts
@@ -93,23 +94,6 @@
 (defun setup-fermentables-table ()
   (clrhash *fermentables*)
   (loop for grain in *fermentables-data* do (setf (gethash (first grain) *fermentables*) (rest grain))))
-
-; grain-bill-percentage
-; 1. Returns grain bill of the form (GRAIN-NAME PERCENTAGE-OF-BILL)
-; 2. grain-bill : grain bill to be considered
-; 3. (None)
-(defun grain-bill-percentage (grain-bill)
-  (let ((grains (loop for grain in grain-bill collect (second grain))))
-    (loop for grain in grains collect (* 0.01 (round (/ grain (apply '+ grains)) 0.01)))))
-
-; scale-grain-bill
-; 1. Scales grain bill by scale-factor
-; 2. grain-bill   : see (1)
-;    scale-factor : see (1)
-; 3. (None)
-(defun scale-grain-bill (grain-bill scale-factor)
-  (loop for grain in grain-bill collect (list (first grain) (* scale-factor (second grain)))))
-
 
 ;;; Section 2: fermentable class
 
@@ -137,10 +121,9 @@
 (defmethod print-object ((o fermentable) stream)
   (format stream "(~a ~a ~a ~a ~a)" (name o) (form o) (max-yield o) (srm o) (weight o)))
 
-(defmethod add-ingredient (recipe (f fermentable) &rest r)
-	(if (not (gethash (form f) recipe)) 
-		(setf (gethash (form f) recipe) (list (list (name f) (weight f) (first r))))
-		(setf (gethash (form f) recipe) (append (gethash (form f) recipe) (list (list (name f) (weight f) (first r)))))))
-
 (defun make-grain (name weight)
-	(make-instance 'fermentable :name name :form 'GRAIN :weight weight))
+  (if (gethash name *fermentables*) 
+    (make-instance 'fermentable :name name :form 'GRAIN :weight weight)
+    (format t "~%***Grain ~a not known***~%" name)))
+
+

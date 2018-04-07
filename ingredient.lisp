@@ -10,6 +10,11 @@
 	 (form
 	    :initarg :form
 	 	:reader form
-	 	:documentation "Ingredient form (e.g. pellet for hops, liquid for yeast etc")))
+	 	:documentation "Ingredient form (e.g. pellet for hops, liquid for yeast etc")
+	 (weight
+		:initarg :weight
+    	:initform 0
+		:accessor weight
+		:documentation "Weight/amount of ingredient")))
 
 (defgeneric add-ingredient (recipe i &rest r))

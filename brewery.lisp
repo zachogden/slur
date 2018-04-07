@@ -1,3 +1,8 @@
+;;;; slur
+;;;; brewery superclass
+;;;; --> should encapsulate the environment and equipment in brewery,
+;;;; --> as well as some brewery standard practices (i.e. water/grist ratio)
+
 (defclass brewery ()
   ((name
     :initarg :name
@@ -11,7 +16,7 @@
     :documentation "water:grist ratio")
   (mashtun-vol
     :initarg :mashtun-vol
-    :initform 10
+    :initform 9.5
     :accessor mashtun-vol
     :documentation "Usable mashtun volume (gal)")
   (mash-eff
@@ -29,3 +34,21 @@
     :initform 70
     :accessor ambient-temp
     :documentation "Ambient brewhouse temp/dry grain temp")))
+
+(defparameter *brewery* nil)
+
+; setup-brewery
+; 1. Initializes brewery
+; 2. N/A
+; 3. TODO: Include code for settings load from file
+(defun setup-brewery ()
+  (setf *brewery* 
+    (make-instance 'brewery 
+      :name "Maize & Brew" 
+      :mashtun-vol   9.5 
+      :mash-eff     00.65 
+      :ambient-temp 69.00 
+      :wgr           1.5)))
+
+
+

@@ -14,130 +14,45 @@
 ;;;; sg gp are of the form XX, specific sg 1.0XX
 ;;;; Yeast cell counts assumed to be given as billions of cells
 
-;;; Section 0: Data structures
 
-(defclass recipe ()
-  ((name
-    :initarg :name
-    :initform "Unnamed Recipe"
-    :accessor name
-    :documentation "Recipe name")
-  (volume
-    :initarg :volume
-    :initform 5
-    :accessor volume
-    :documentation "Recipe volume (gal)")
-  (water
-    :initarg :water
-    :initform nil
-    :accessor water
-    :documentation "Water profile [RESERVED]")
-  (mash
-    :initarg :mash
-    :initform nil
-    :accessor mash
-    :documentation "Mash steps")
-  (kettle
-    :initarg :kettle
-    :initform nil
-    :accessor kettle
-    :documentation "Kettle steps")
-  (ferm
-    :initarg :ferm
-    :initform nil
-    :accessor ferm
-    :documentation "Fermentation steps")
-  (packaging
-    :initarg :pack
-    :initform nil
-    :accessor pack
-    :documentation "Packaging (kegging/bottling) [RESERVED]")
-
-  ; recipe descriptor values
-  (BG
-    :initarg :BG
-    :initform nil
-    :accessor BG
-    :documentation "Recipe BG")
-  (OG
-    :initarg :OG
-    :initform nil
-    :accessor OG
-    :documentation "Recipe OG")
-  (FG
-    :initarg :FG
-    :initform nil
-    :accessor FG
-    :documentation "Recipe FG")
-  (SRM
-    :initarg :SRM
-    :initform nil
-    :accessor SRM
-    :documentation "Recipe SRM")))
-
-;;; Section 1: Recipe file I/O 
-
-; read-mash
-(defun read-mash (raw)
-  (loop for line in raw 
-    if (eql 'GRAIN (second line)) 
-      collect (make-instance 'fermentable 
-        :name (first line) 
-        :form (second line) 
-        :max-yield (third line)
-        :srm (fourth line) 
-        :weight (fifth line))
-      collect line))
-
-; read-kettle
-;THIS IS FUCKED
-(defun read-kettle (raw)
-  (loop for line in raw
-    if (eql (type-of (first line)) 'cons) 
-      collect (list 
-        (make-instance 'hop
-          :name (first (first line))
-          :form (second (first line))
-          :alpha-acid (third (first line)))
-        (second line)
-        (third line)
-        (fourth line))
-    else  
-      collect line))
-
-; read-recipe
-; 1. reads .slur recipe file, returning recipe object
-; 2. filename : name of file to be read
-(defun read-recipe (filename)
-  (with-open-file (file filename) 
-    (make-instance 'recipe 
-      :name   (read file) 
-      :volume (read file)
-      :water  (read file)
-      :mash   (read-mash   (read file))
-      :kettle (read-kettle (read file))
-      :ferm   (read file)
-      :pack   (read file)
-
-      :BG (read file)
-      :OG (read file)
-      :FG (read file))))
-
-(defun write-recipe (r filename)
-  (with-open-file (file filename :direction :output :if-exists :supersede) 
-    (print (name r)   file)
-    (print (volume r) file)
-    (print (water r)  file)
-    (print (mash r)   file)
-    (print (kettle r) file)
-    (print (ferm r)   file)
-    (print (pack r)   file)
-
-    (print (BG r) file)
-    (print (OG r) file)
-    (print (FG r) file)))
 
 ;;; Section 2: Recipe building
+(defun add-step (r p s)
+  (cond
+    ((eql p 'MASH)   (add-mash-step   r s))
+    ((eql p 'KETTLE) (add-kettle-step r s))
+    ((eql p 'FERM)   (add-ferm-step   r s))
+    (t (format t "Not a valid process~%"))))
+
+(defun spit-mash (r b &aux (mash-grains (get-mash-grains r)))
+  (let* (
+    (mash-loss   (grain-water-absorbed (grist-mass mash-grains)))
+    (strike-temp (strike-water-temp (wgr b) (ambient-temp b) (get-mash-temp r)))
+
+    (strike-vol  (if (eql (mash-type (mash r)) 'NO-SPARGE)
+                  (no-sparge-check r b) 
+                  (float-round (strike-water-vol (grist-mass mash-grains) (wgr b)) 2)))
+    (sparge-vol  (float-round (+ mash-loss (- (boil-vol r b) strike-vol)) 2)))
+  
+      (format t "Strike ~a gallons of water to ~aF~%~%" strike-vol strike-temp)
+
+      (format t "Dough in the following:~%")
+  
+      (loop for grain in (sort-mash-grains r) do (format t "~a lbs ~a~%" (second grain) (first grain)))
+
+      (format t "Sparge ~a gal~%" sparge-vol)))
+
+(defun spit-kettle (r)
+  (loop for k in (kettle r)
+      collecting (third k) into time-table do
+      (if (not (eql (car (reverse time-table)) (cadr (reverse time-table))))
+        (if (minusp (third k)) 
+          (format t "~%***WHIRLPOOL (~a MIN)***~%" (abs (third k)))
+          (format t "~%***~a MINUTES***~%" (third k))))
+
+      (if (typep (first k) 'hop) 
+        (format t "~a oz ~a~%" (second k) (name (first k)))
+        (format t "~a~%" (first k)))))
 
 ; build
 ; 1. Calculates descriptors for recipe

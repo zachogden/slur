@@ -7,18 +7,11 @@
 ;;;; --> [ion] given common salt additions
 ;;;; --> i/o water profiles
 ;;;; --> bounds checking for pH/alk (?)
-;;;; 2) pantry/inventory [vh]
-;;;; --> hops
-;;;; --> fermentables
-;;;; 3) post-brew [vh]
-;;;; --> tie-in w/ (3)
-;;;; --> tie-in w/ (1)
-;;;; 4) mash types [h]
-;;;; --> no sparge (confirm w/ size of mash tun)
-;;;; --> batch sparge
-;;;; --> fly sparge
+;;;; 2) Include extract brewing (fermentables in boil) [h]
+;;;; 3) Include FV additions (i.e. sugar in primary/secondary a la belgians) [vh]
+;;;; 4) Flesh out fermentation functionality [vh]
 
-;;;; 5, 2 (barebones/sandbox), 3 (initial functions)
+;;;; 2, 3, 4, 1
 
 ;;;; Conventions:
 ;;;; -> functions documented in the form
@@ -28,60 +21,38 @@
 ;;;; -> 3. notes/assumptions, if any
 ;;;; -> macros should be self explanatory enough to not require this 
 
-(load (merge-pathnames "unit-conversions.lisp" *load-truename*))
+(load (merge-pathnames "start.lisp" *load-truename*))
 
-(load (merge-pathnames "brewery.lisp" *load-truename*))
-(load (merge-pathnames "ingredient.lisp" *load-truename*))
-(load (merge-pathnames "fermentable.lisp" *load-truename*))
-(load (merge-pathnames "hops.lisp" *load-truename*))
+(boot-slur)
 
-(load (merge-pathnames "mash.lisp" *load-truename*))
-(load (merge-pathnames "kettle.lisp" *load-truename*))
+(defvar hh nil)
 
-(load (merge-pathnames "fermentation.lisp" *load-truename*))
-(load (merge-pathnames "packaging.lisp" *load-truename*))
-(load (merge-pathnames "recipe.lisp" *load-truename*))
+(defun make-red()
+  (setf hh (make-instance 'recipe :name "California Red" :volume 5.25))
 
-(setup-fermentables-table)
+  (add-step hh 'MASH (make-grain '2-ROW      12.25))
+  (add-step hh 'MASH (make-grain 'MUNICH      1.00))
+  (add-step hh 'MASH (make-grain 'CRYSTAL-40  1.00))
+  (add-step hh 'MASH (make-grain 'CRYSTAL-120 0.50))
+  (add-step hh 'MASH (make-grain 'VICTORY     0.50))
+  (add-step hh 'MASH (make-grain 'CHOCOLATE (oz-to-lbs 3.0)))
 
-(defvar my-brewery 
-  (make-instance 'brewery :name "Maize & Brew" :mashtun-vol 10.0 :mash-eff 0.75 :ambient-temp 68 :wgr 1.5))
+  (add-step hh 'MASH (list 'MASH         152 60 100))
+  (add-step hh 'MASH (list 'BATCH-SPARGE 170 60 100))
 
-(defvar NEIPA nil)
-(defvar blonde nil)
+  (add-step hh 'KETTLE (list 'BOIL      212 60))
+  (add-step hh 'KETTLE (list 'WHIRLFLOC 212 15))
 
-; makeshift hop shop
-(defparameter centennial (make-instance 'hop :name "centennial" :form "pellet" :alpha-acid 10.0))
-(defparameter amarillo   (make-instance 'hop :name "amarillo"   :form "pellet" :alpha-acid  8.5))
-(defparameter simcoe     (make-instance 'hop :name "simcoe"     :form "pellet" :alpha-acid 13.0))
-(defparameter willamette (make-instance 'hop :name "willamette" :form "pellet" :alpha-acid  5.4)) ;confirmed
+  (add-step hh 'KETTLE (make-hop-addition (get-from-inventory 'SIMCOE 'HOPS)     1.25 60 'BOIL))
+  (add-step hh 'KETTLE (make-hop-addition (get-from-inventory 'CASCADE 'HOPS)    1.0 10 'BOIL))
+  (add-step hh 'KETTLE (make-hop-addition (get-from-inventory 'CENTENNIAL 'HOPS) 1.0 10 'BOIL))
+  (add-step hh 'KETTLE (make-hop-addition (get-from-inventory 'CASCADE 'HOPS)    1.0 00 'BOIL))
+  (add-step hh 'KETTLE (make-hop-addition (get-from-inventory 'CENTENNIAL 'HOPS) 1.0 00 'BOIL))
 
-(defun make-blonde ()
-  (setf blonde (make-instance 'recipe :name "Blonde Ale" :volume 5))
-
-  (add-mash-step blonde (make-grain '2-ROW 11.5))
-  (add-mash-step blonde (make-grain 'CRYSTAL-10 0.5))
-
-  (add-mash-step blonde (list 'MASH   152 60 100))
-  (add-mash-step blonde (list 'SPARGE 170 60 100))
-
-  (add-kettle-step blonde (list 'BOIL      212 60))
-  (add-kettle-step blonde (list 'WHIRLFLOC 212 15))
-
-  (add-kettle-step blonde (make-hop-addition willamette 1.0 60 'BOIL))
-
-  (add-ferm-step blonde (list 'PRIMARY 'WLP-001 10 70)))
+  (add-step hh 'FERM (list 'PRIMARY 'WLP-002 10 70)))
 
 (defun asd ()
-  (make-blonde)
-  (spit-recipe blonde my-brewery))
+  (make-red)
+  (spit-recipe hh *brewery*))
 
-(defvar b1 nil)
 
-(defun aaa ()
-  (make-blonde)
-  (spit-recipe blonde my-brewery)
-  (write-recipe blonde "/lisp/slur/blonde.slur")
-  (format t "~%**********~%")
-  (setf b1 (read-recipe "/lisp/slur/blonde.slur"))
-  (spit-recipe b1 my-brewery))
