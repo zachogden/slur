@@ -66,7 +66,7 @@
 ; clear-recipe
 ; 1. Clear recipe hash table
 ; 2. (None)
-(defmacro clear-recipe () `(clrhash ,*recipe*))
+(defmacro clear-recipe (recipe) `(clrhash , recipe))
 
 ;; Ingredients tools 
 ;; --> Many macros are extremely simple. Used for clarity in later code.
@@ -135,11 +135,5 @@
 ;    tag    : step-specific tag (i.e. ferm sour once SG of 1.01 reached, tag = 1.01)
 ; 3. Only standard ferm step tag currently PRIMARY-FERMENTATION
 (defmacro ferm-step (name temp time strain &optional tag) `(list ,name ,temp ,time ,strain ,tag))
-
-
-
-
-
-
 
 

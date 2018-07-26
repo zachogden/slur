@@ -1,0 +1,6 @@
+; Yeast data from respective lab websites
+; of the form (description | attenuation % range | flocculation | alc. tolerance range | temp range)
+WLP-001 CALIFORNIA-ALE 73 80 MEDIUM 10 15 68 73
+WLP-028 EDINBURGH-SCOTTISH-ALE 70 75 MEDIUM 8 12 65 70
+WLP-029 GERMAN-ALE-KOLSCH 72 78 MEDIUM 5 10 65 69
+WLP-565 BELGIAN-SAISON-I 65 75 MEDIUM 5 10 68 75

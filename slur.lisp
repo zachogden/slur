@@ -14,14 +14,15 @@
 
 ;;;; TODO:
 ;;;; 1. Error checking for ingredient addition (is grain in table?)
-;;;; 2. Recipe file I/O
-;;;; 3. Water
-;;;; 4. Mark recipe as made (w/ actual gravity, etc)?
+;;;; 3. Yeast bank from file (not hard coded)
+;;;; 4. grain/hop date from file only
+;;;; 5. Water calculations
 
 (defparameter *grain-table* (make-hash-table))
 
 (defparameter *brewery* (make-hash-table))
 
+;(load (merge-pathnames "file-io.lisp" *load-truename*))
 (load (merge-pathnames "grains.lisp" *load-truename*))
 (load (merge-pathnames "unit-conversions.lisp" *load-truename*))
 (load (merge-pathnames "mash.lisp" *load-truename*))
@@ -29,6 +30,7 @@
 (load (merge-pathnames "yeast.lisp" *load-truename*))
 (load (merge-pathnames "packaging.lisp" *load-truename*))
 (load (merge-pathnames "recipe.lisp" *load-truename*))
+(load (merge-pathnames "file-io.lisp" *load-truename*))
 
 ; build-brewery
 ; 1. Sets up slur environment
@@ -43,38 +45,6 @@
   (setup-grain-table))
 
 (defparameter APA nil)
-
-; Brewing Classic Styles, pg 135
-(defun make-APA ()
-  (build-brewery 0.62 1 76)
-  (setf APA (make-hash-table))
-  
-  ; 1. Header
-  (setf (gethash 'HEADER APA) '('AMERICAN-PALE-ALE 5))
-
-  ; 3. Grains
-  (add-ingredient APA 'GRAIN (grain '2-ROW   11.0 'MASH))
-  (add-ingredient APA 'GRAIN (grain 'MUNICH  0.75 'MASH))
-  (add-ingredient APA 'GRAIN (grain 'VICTORY 0.75 'MASH))
-  (add-ingredient APA 'GRAIN (grain 'GERMAN-WHEAT   0.50 'MASH))
-
-  ; 4. Hops
-  (add-ingredient APA 'HOP (hop 'CENTENNIAL 1.25 7.5 'BOIL 60))
-  (add-ingredient APA 'HOP (hop 'CASCADE    0.5  6.4 'BOIL 10))
-  (add-ingredient APA 'HOP (hop 'CENTENNIAL 0.75 7.5 'BOIL 10))
-  (add-ingredient APA 'HOP (hop 'CASCADE    0.5  6.4 'BOIL  0))
-  (add-ingredient APA 'HOP (hop 'CENTENNAIL 0.75 7.5 'BOIL  0))
-
-  ; 5. Mash
-  (add-ingredient APA 'MASH (mash-step 'SINGLE-INFUSION 152 60 100))
-  (add-ingredient APA 'MASH (mash-step 'SPARGE          170 60 100))
-
-  ; 6. Kettle
-  (add-ingredient APA 'KETTLE (kettle-step 'BOIL      212 60))
-  (add-ingredient APA 'KETTLE (kettle-step 'WHIRLFLOC 212 15))
-
-  ; 7. Fermentation
-  (add-ingredient APA 'FERMENT (ferm-step 'PRIMARY-FERMENTATION 67 10 'WLP-001)))
 
 (defun spit-recipe (recipe)
   (let* (
@@ -144,7 +114,7 @@
       (if (eql (car ferm-step) 'PRIMARY-FERMENTATION)
         (progn
           (format t "Ferment with ~a @ ~aF x ~a days~%" (cadddr ferm-step) (cadr ferm-step) (caddr ferm-step))
-          (loop for strain in yeast-bank 
+          (loop for strain in (load-slur-data "/home/zach/code/slur/yeast-data.slur" 'YEAST) 
             for ferm-strain        = (fourth ferm-step)
             for strain-name        = (first strain) 
             for strain-attenuation = (third strain)

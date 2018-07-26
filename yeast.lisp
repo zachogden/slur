@@ -24,17 +24,8 @@
 (defun starter-growth-rate (inoculation)
   (- (* 12.54793776 (expt inoculation -0.4594858324)) 0.9994994906))
 
-; Yeast data from respective lab websites
-; of the form (description | attenuation % range | flocculation | alc. tolerance range | temp range)
-
-(defparameter yeast-bank (list
-  (list 'WLP-001 'CALIFORNIA-ALE         (list 73 80) 'MEDIUM (list 10 15) (list 68 73))
-  (list 'WLP-028 'EDINBURGH-SCOTTISH-ALE (list 70 75) 'MEDIUM (list 8 12)  (list 65 70))
-  (list 'WLP-029 'GERMAN-ALE-KOLSCH      (list 72 78) 'MEDIUM (list 5 10)  (list 65 69))
-  (list 'WLP-565 'BELGIAN-SAISON-I       (list 65 75) 'MEDIUM (list 5 10)  (list 68 75))))
-
 (defun yeast-check (strain temp abv)
-  (loop for yeast in yeast-bank do
+  (loop for yeast in (load-slur-data "/home/zach/code/slur/yeast-data.slur" 'YEAST) do
     (when (eql (first yeast) strain)
       (let ((strain-temp-range (sixth yeast))
             (strain-abv-limit  (second (fifth yeast))))

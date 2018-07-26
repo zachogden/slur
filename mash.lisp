@@ -2,12 +2,6 @@
 ;;;; Mash utility functions
 
 ;;;; Conventions:
-;;;; -> functions documented in the form
-;;;; -> function-name
-;;;; -> 1. basic description
-;;;; -> 2. argument(s)
-;;;; -> 3. notes/assumptions, if any
-;;;; -> macros should be self explanatory enough to not require this 
 ;;;;
 ;;;; Specific gravity shortened to "sg," gravity points to "gp"
 ;;;; All measurements of volume should be prefixed w/ boil-, ferm-, etc
@@ -88,7 +82,3 @@
 ; 3. (None)
 (defmacro infusion-volume (grist-mass current-t target-t infusion-t mash-water-vol) 
   `(/ (* (- ,target-t ,current-t) (+ (* 0.2 ,grist-mass) ,mash-water-vol)) (- ,infusion-t ,target-t)))
-
-
-
-  
