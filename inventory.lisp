@@ -20,11 +20,9 @@
 
 (defun load-hop-inventory ()
   (setf (gethash 'lemon-drop (inventory 'HOPS)) 
-	(make-instance 'hop :name "lemon drop" :form "pellet" :alpha-acid 5.4)) ;confirmed
-  (setf (gethash 'centennial (inventory 'HOPS)) 
-	(make-instance 'hop :name "centennial" :form "pellet" :alpha-acid 7.5)) ;confirmed
+	  (make-instance 'hop :name "lemon drop" :form "pellet" :alpha-acid 5.4)) ;confirmed
   (setf (gethash 'cascade (inventory 'HOPS)) 
-	(make-instance 'hop :name "cascade" :form "pellet" :alpha-acid 6.4)) ;confirmed
+	  (make-instance 'hop :name "cascade" :form "pellet" :alpha-acid 6.4)) ;confirmed
   (setf (gethash 'amarillo (inventory 'HOPS))
     (make-instance 'hop :name "amarillo"   :form "pellet" :alpha-acid  8.5))
   (setf (gethash 'simcoe (inventory 'HOPS))
@@ -35,7 +33,6 @@
     (make-instance 'hop :name "East Kent Golding" :form "pellet" :alpha-acid  4.8)))
 
 (defun load-fermentable-inventory ()
-  (setf (gethash '2-ROW       (inventory 'FERMENTABLES)) (make-grain '2-ROW       27.0))
   (setf (gethash 'CRYSTAL-10  (inventory 'FERMENTABLES)) (make-grain 'CRYSTAL-10   9.5))
   (setf (gethash 'FLAKED-OATS (inventory 'FERMENTABLES)) (make-grain 'FLAKED-OATS  9.0)))
 

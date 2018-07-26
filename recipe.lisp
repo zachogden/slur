@@ -38,7 +38,10 @@
 
       (format t "Dough in the following:~%")
   
-      (loop for grain in (sort-mash-grains r) do (format t "~a lbs ~a~%" (second grain) (first grain)))
+      (loop for grain in (sort-mash-grains r) do 
+        (if (< (second grain) 1.0) 
+          (format t "~a oz ~a~%" (lbs-to-oz (second grain)) (first grain))
+          (format t "~a lbs ~a~%" (second grain) (first grain))))
 
       (format t "Sparge ~a gal~%" sparge-vol)))
 

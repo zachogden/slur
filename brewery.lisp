@@ -46,7 +46,7 @@
     (make-instance 'brewery 
       :name "Maize & Brew" 
       :mashtun-vol   9.5 
-      :mash-eff     00.65 
+      :mash-eff      0.61889505 ; most recent brew 
       :ambient-temp 69.00 
       :wgr           1.5)))
 

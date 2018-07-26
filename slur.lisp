@@ -30,11 +30,11 @@
 (defun make-red()
   (setf hh (make-instance 'recipe :name "California Red" :volume 5.25))
 
-  (add-step hh 'MASH (make-grain '2-ROW      12.25))
-  (add-step hh 'MASH (make-grain 'MUNICH      1.00))
+  (add-step hh 'MASH (make-grain '2-ROW      9.925))
+  (add-step hh 'MASH (make-grain 'MUNICH      2.00))
   (add-step hh 'MASH (make-grain 'CRYSTAL-40  1.00))
   (add-step hh 'MASH (make-grain 'CRYSTAL-120 0.50))
-  (add-step hh 'MASH (make-grain 'VICTORY     0.50))
+  (add-step hh 'MASH (make-grain 'VICTORY     1.00))
   (add-step hh 'MASH (make-grain 'CHOCOLATE (oz-to-lbs 3.0)))
 
   (add-step hh 'MASH (list 'MASH         152 60 100))
